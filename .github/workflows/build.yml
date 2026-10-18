@@ -82,41 +82,23 @@ jobs:
       run: |
         cp SETUP.template SETUP
         sed -i 's/ANDROIDAPI=21/ANDROIDAPI=28/g' SETUP
-        sed -i 's|/usr/local/android-sdk-*|../../android-sdk|g' SETUP
-        sed -i 's|/usr/local/android-ndk-*|../../android-sdk/ndk/21.4.7075529|g' SETUP
-        echo 'export ANDROID_NDK_ROOT=../../android-sdk/ndk/21.4.7075529' >> SETUP
-        echo 'export ANDROID_SDK_ROOT=../../android-sdk' >> SETUP
-        echo 'export PATH=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH' >> SETUP
+        # SETUP is sourced from different build directories; use absolute paths.
+        cat >> SETUP <<EOF
+        ANDROIDSDK="$GITHUB_WORKSPACE/android-sdk"
+        ANDROIDNDK="$GITHUB_WORKSPACE/android-sdk/ndk/21.4.7075529"
+        EOF
         cp PROFILE.template PROFILE
         sed -i 's|SYS_ANDROIDPW="yoursecrethere"|SYS_ANDROIDPW="android"|g' PROFILE
 
-    - name: Fix toolchain path for LambdaNative
+    - name: Check Scheme startup and transaction actions
       run: |
-        mkdir -p /toolchains/llvm/prebuilt
-        ln -s $GITHUB_WORKSPACE/android-sdk/ndk/21.4.7075529/toolchains/llvm/prebuilt/linux-x86_64 /toolchains/llvm/prebuilt/linux-x86_64
-
-    - name: Patch missing clang toolchain
-      run: |
-        if [ ! -f /toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android28-clang ] && [ -f /toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-clang ]; then
-          ln -s /toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-clang /toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android28-clang
-        fi
-        if [ ! -f /toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android28-clang++ ] && [ -f /toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-clang++ ]; then
-          ln -s /toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-clang++ /toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android28-clang++
-        fi
+        gsi -e '(with-exception-catcher (lambda (e) (display-exception e) (exit 1)) (lambda () (load "tests/startup.scm")))'
 
     - name: Linux build
       working-directory: lambdanative
       run: |
         ./configure ExpenseTracker --verbose
         make
-
-    - name: Patch wrong clang target name
-      working-directory: lambdanative
-      run: |
-        if [ -f targets/android/build ]; then
-          sed -i 's/aarch64-linux-android28-clang/aarch64-linux-android-clang/g' targets/android/build
-          sed -i 's/aarch64-linux-android28-clang++/aarch64-linux-android-clang++/g' targets/android/build
-        fi
 
     - name: Android build
       working-directory: lambdanative
@@ -126,12 +108,23 @@ jobs:
         ./configure ExpenseTracker --verbose android debug
         make || { echo "Android build failed"; cat config.log; exit 1; }
 
-    - name: Debug APK output
+    - name: Verify APK metadata and Pixel 7 architecture
       run: |
-        ls -R ~/.cache/lambdanative/packages/
-        find $GITHUB_WORKSPACE -name "*.apk"
+        set -eu
+        found=0
+        for apk in "$HOME"/.cache/lambdanative/packages/*.apk; do
+          [ -f "$apk" ] || continue
+          found=1
+          "$GITHUB_WORKSPACE/android-sdk/build-tools/29.0.3/aapt" dump badging "$apk" | tee apk-info.txt
+          # Pixel 7 needs a 64-bit ARM native library.
+          unzip -Z1 "$apk" | grep -E '^lib/arm64-v8a/[^/]+\.so$'
+        done
+        [ "$found" -eq 1 ] || { echo "No APK was produced"; exit 1; }
 
     - uses: actions/upload-artifact@v4
       with:
         name: apk
-        path: ~/.cache/lambdanative/packages/*.apk
+        if-no-files-found: error
+        path: |
+          ~/.cache/lambdanative/packages/*.apk
+          apk-info.txt
