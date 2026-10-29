@@ -2,9 +2,10 @@ name: fedora-build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, improved-expense-income-tracker ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,8 +23,8 @@ jobs:
        dnf -y install gcc-14 git grep ImageMagick-devel java-25-openjdk-devel
        dnf -y install libtool libXext-devel make mesa-libGL-devel
        dnf -y install mesa-libGLU-devel netpbm-devel patch perl-FindBin
-       dnf -y install portaudio python3-sdkmanager sed tar tcl-devel texlive
-       dnf -y install which wget zip unzip
+       dnf -y install portaudio python3-sdkmanager sed tar tcl-devel texlive perl-Digest-SHA
+       dnf -y install which wget zip unzip sqlite-devel
        dnf -y install m4 pkgconf-pkg-config gettext-devel autoconf-archive
     - name: Get LambdaNative
       run: |
@@ -39,13 +40,18 @@ jobs:
        # https://computingforgeeks.com/install-and-use-android-studio-on-fedora/
        mkdir -p /home/build/android-sdk
        export ANDROID_HOME=/home/build/android-sdk
+       export ANDROID_SDK_ROOT="$ANDROID_HOME"
        echo yes | sdkmanager --sdk_root=/home/build/android-sdk "platforms;android-28"
        echo yes | sdkmanager --sdk_root=/home/build/android-sdk "build-tools;29.0.3"
        echo yes | sdkmanager --sdk_root=/home/build/android-sdk "tools"
-       echo yes | sdkmanager --sdk_root=/home/build/android-sdk "extras;android;m2repository"
        echo yes | sdkmanager --sdk_root=/home/build/android-sdk "ndk;21.4.7075529"
        echo yes | sdkmanager --sdk_root=/home/build/android-sdk "platform-tools"
        echo yes | sdkmanager --sdk_root=/home/build/android-sdk --licenses
+       # The pinned loader needs this support JAR, not the obsolete Maven archive.
+       mkdir -p "$ANDROID_HOME/extras/android/support/v4"
+       curl --fail --location --retry 3 -o /tmp/support-v4.aar \
+         https://dl.google.com/dl/android/maven2/com/android/support/support-v4/23.4.0/support-v4-23.4.0.aar
+       unzip -p /tmp/support-v4.aar classes.jar > "$ANDROID_HOME/extras/android/support/v4/android-support-v4.jar"
        # https://coderwall.com/p/r09hoq/android-generate-release-debug-keystores
        # https://stackoverflow.com/a/13578480
        keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -noprompt -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, S=Unknown, C=Unknown"
@@ -79,7 +85,7 @@ jobs:
       run: cp -r ExpenseTracker lambdanative/apps/
     - name: Check Scheme startup and transaction actions
       run: |
-        gsi -e '(with-exception-catcher (lambda (e) (display-exception e) (exit 1)) (lambda () (load "tests/startup.scm")))'
+        LAMBDANATIVE_DIR="$GITHUB_WORKSPACE/lambdanative" ./tests/run.sh
     - name: Build JPEG without legacy libtool
       working-directory: lambdanative
       run: |
@@ -87,6 +93,33 @@ jobs:
         # libtool variants selects its plain .o -> libjpeg.a build instead.
         # Apply this to the recipe so Linux and every Android ABI use it.
         sed -i 's/--disable-shared --enable-static/--disable-shared --disable-static/' libraries/libjpeg/make.sh
+        # Reuse the installed GNU helper instead of an obsolete HTTP download.
+        python3 - <<'PY'
+        from pathlib import Path
+        recipe = Path('libraries/libjpeg/make.sh')
+        lines = recipe.read_text().splitlines()
+        recipe.write_text('\n'.join('cp /usr/share/automake*/config.sub .' if 'wget -O config.sub' in line else line for line in lines) + '\n')
+        PY
+    - name: Enable Linux list wheel scrolling
+      working-directory: lambdanative
+      run: |
+        python3 - <<'PY'
+        from pathlib import Path
+        path = Path('loaders/x11/x11_microgl.c')
+        source = path.read_text()
+        if '/* expense tracker wheel scrolling */' not in source:
+            start = source.index('case ButtonPress:')
+            pos = source.index('          case Button1:', start)
+            source = source[:pos] + '''          /* expense tracker wheel scrolling */
+                  case Button4:
+                   microgl_hook(EVENT_KEYPRESS, EVENT_KEYUP, 0);
+                   break;
+                  case Button5:
+                   microgl_hook(EVENT_KEYPRESS, EVENT_KEYDOWN, 0);
+                   break;
+        ''' + source[pos:]
+            path.write_text(source)
+        PY
     - name: Linux configure (fetch deps)
       working-directory: lambdanative
       run: |
@@ -113,7 +146,7 @@ jobs:
     - name: Android build
       working-directory: lambdanative
       run: |
-        sed -i 's/python/python3/g' targets/android/check-tools
+        sed -i -E 's/\bpython3*\b/python3/g' targets/android/check-tools
         mkdir -p ~/.cache/lambdanative/android/support
         ./configure ExpenseTracker --verbose android debug
         make || { echo "Android build failed"; cat config.log; exit 1; }
@@ -137,3 +170,9 @@ jobs:
         path: |
           ~/.cache/lambdanative/packages/*.apk
           apk-info.txt
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: linux
+        if-no-files-found: error
+        path: ~/.cache/lambdanative/packages/ExpenseTracker-*-linux.zip
