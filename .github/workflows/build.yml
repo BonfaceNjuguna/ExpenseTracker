@@ -24,7 +24,7 @@ jobs:
        dnf -y install libtool libXext-devel make mesa-libGL-devel
        dnf -y install mesa-libGLU-devel netpbm-devel patch perl-FindBin
        dnf -y install portaudio python3-sdkmanager sed tar tcl-devel texlive perl-Digest-SHA
-       dnf -y install which wget zip unzip sqlite-devel
+       dnf -y install which wget zip unzip sqlite-devel redhat-rpm-config
        dnf -y install m4 pkgconf-pkg-config gettext-devel autoconf-archive
     - name: Get LambdaNative
       run: |
