@@ -24,7 +24,7 @@ jobs:
        dnf -y install libtool libXext-devel make mesa-libGL-devel
        dnf -y install mesa-libGLU-devel netpbm-devel patch perl-FindBin
        dnf -y install portaudio python3-sdkmanager sed tar tcl-devel texlive perl-Digest-SHA
-       dnf -y install which wget zip unzip sqlite-devel redhat-rpm-config
+       dnf -y install which wget zip unzip sqlite-devel
        dnf -y install m4 pkgconf-pkg-config gettext-devel autoconf-archive
     - name: Get LambdaNative
       run: |
@@ -84,6 +84,11 @@ jobs:
     - name: Copy ExpenseTracker app
       run: cp -r ExpenseTracker lambdanative/apps/
     - name: Check Scheme startup and transaction actions
+      # Fedora Gambit embeds RPM packaging flags. This temporary test module
+      # is not an RPM build, so use ordinary compiler/linker flags instead.
+      env:
+        CORCXXFLAGS_GAMBUILD: -O2
+        LDFLAGS_GAMBUILD: -Wl,-z,relro -Wl,-z,now
       run: |
         LAMBDANATIVE_DIR="$GITHUB_WORKSPACE/lambdanative" ./tests/run.sh
     - name: Build JPEG without legacy libtool
