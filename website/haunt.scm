@@ -60,7 +60,7 @@
   (static-page "Expense Tracker" "index.html"
 	       `(
 		 (h1 "Expense Tracker")
-		 (p "budget yourself")
+		 (p "budget yourself"))))
 		 
 
 (site #:title "GeoTrace"
