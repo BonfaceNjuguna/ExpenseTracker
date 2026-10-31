@@ -60,7 +60,12 @@
   (static-page "Expense Tracker" "index.html"
 	       `(
 		 (h1 "Expense Tracker")
-		 (p "budget yourself"))))
+		 (p "budget yourself")
+  		 (h2 "Download")
+		 (p "An Android apk is available at " (a (@ (href "ExpenseTracker-1.0-android-api28.apk"))
+							 "here") ".")
+		 (p "Source code is available at " (a (@ (href "https://github.com/BonfaceNjuguna/LambdaNativeQuickStart/"))
+						      "https://github.com/BonfaceNjuguna/LambdaNativeQuickStart/")))))
 		 
 
 (site #:title "Expense Tracker"
