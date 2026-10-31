@@ -64,8 +64,8 @@
   		 (h2 "Download")
 		 (p "An Android apk is available at " (a (@ (href "ExpenseTracker-1.0-android-api28.apk"))
 							 "here") ".")
-		 (p "Source code is available at " (a (@ (href "https://github.com/BonfaceNjuguna/LambdaNativeQuickStart/"))
-						      "https://github.com/BonfaceNjuguna/LambdaNativeQuickStart/")))))
+		 (p "Source code is available at " (a (@ (href "https://github.com/BonfaceNjuguna/ExpenseTracker/"))
+						      "https://github.com/BonfaceNjuguna/ExpenseTracker/")))))
 		 
 
 (site #:title "Expense Tracker"
