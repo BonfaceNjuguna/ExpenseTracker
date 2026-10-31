@@ -168,13 +168,20 @@ jobs:
         done
         [ "$found" -eq 1 ] || { echo "No APK was produced"; exit 1; }
 
+    - name: Prepare APK download
+      run: |
+        # Keep the APK and metadata under one artifact root. Uploading paths
+        # from HOME and the workspace together retains nested directories;
+        # Pages then excludes the hidden .cache directory containing the APK.
+        mkdir -p apk-download
+        cp "$HOME"/.cache/lambdanative/packages/ExpenseTracker-*-android*.apk apk-download/
+        cp apk-info.txt apk-download/
+
     - uses: actions/upload-artifact@v7
       with:
         name: apk
         if-no-files-found: error
-        path: |
-          ~/.cache/lambdanative/packages/*.apk
-          apk-info.txt
+        path: apk-download/
 
     - uses: actions/upload-artifact@v7
       with:
