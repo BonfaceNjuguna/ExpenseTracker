@@ -58,15 +58,41 @@
 
 (define home-page
   (static-page "Expense Tracker" "index.html"
-	       `(
-		 (h1 "Expense Tracker")
-		 (p "budget yourself")
-  		 (h2 "Download")
-		 (p "An Android apk is available at " (a (@ (href "ExpenseTracker-1.0-android-api28.apk"))
-							 "here") ".")
-		 (p "Source code is available at " (a (@ (href "https://github.com/BonfaceNjuguna/ExpenseTracker/"))
-						      "https://github.com/BonfaceNjuguna/ExpenseTracker/")))))
-		 
+    `((h1 "Expense Tracker")
+      (p "Expense Tracker is an open-source personal finance app for Android and Linux. "
+         "It helps you record income and expenses and keep track of your balance, "
+         "with your transactions stored locally on your device.")
+      (p "Built with "
+         (a (@ (href "https://www.lambdanative.org/")) "LambdaNative")
+         ", it was initially intended for "
+         (a (@ (href "https://www.learninglions.org/")) "Learning Lions")
+         " students to track their earnings and expenses while learning.")
+
+      (h2 "Features")
+      (ul
+        (li "Record income and expenses in Kenyan shillings (KES).")
+        (li "See your balance and separate income and expense totals.")
+        (li "Review recent transactions or filter your full history.")
+        (li "Choose a category or add your own.")
+        (li "Edit or delete saved transactions."))
+
+      (h2 "Download")
+      (p (a (@ (href "ExpenseTracker-1.0-android-api28.apk")
+               (download "ExpenseTracker-1.0-android-api28.apk"))
+            "Download Expense Tracker for Android (APK)"))
+      (p "Source code, Linux build information and contribution details are available "
+         "in the "
+         (a (@ (href "https://github.com/BonfaceNjuguna/ExpenseTracker/"))
+            "project repository")
+         ".")
+
+      (h2 "Support")
+      (p "This work is supported by the "
+         (a (@ (href "https://nlnet.nl/")) "NLnet Foundation")
+         " through the "
+         (a (@ (href "https://nlnet.nl/project/F-Droid-LambdaNative/"))
+            "LambdaNative F-Droid integration project")
+         "."))))
 
 (site #:title "Expense Tracker"
       #:domain "bonfacenjuguna.github.io"
