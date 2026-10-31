@@ -63,7 +63,7 @@
 		 (p "budget yourself"))))
 		 
 
-(site #:title "GeoTrace"
+(site #:title "Expense Tracker"
       #:domain "bonfacenjuguna.github.io"
       #:build-directory "build"
       #:default-metadata

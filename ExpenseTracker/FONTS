@@ -1,1 +1,2 @@
-cmss.ttf ascii7.set 14 ascii
+DejaVuSans.ttf 7 12,14,16 body
+DejaVuSans-Bold.ttf 7 12,14,16,18,22,28,36 heading
