@@ -2,7 +2,7 @@ name: fedora-build
 
 on:
   push:
-    branches: [ main, improved-expense-income-tracker ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
       image: fedora:43
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - run: cat /etc/os-release
     - name: install dependencies
       run: |
@@ -197,7 +197,7 @@ jobs:
       image: fedora:43
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - run: cat /etc/os-release
     - name: install dependencies
       run: |
@@ -207,13 +207,13 @@ jobs:
       working-directory: website
       run: haunt build
     - name: download apk
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: apk
         path: website/build
     - name: Upload static files as artifact
       id: deployment
-      uses: actions/upload-pages-artifact@v4
+      uses: actions/upload-pages-artifact@v5
       with:
         path: website/build
         
@@ -231,4 +231,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
